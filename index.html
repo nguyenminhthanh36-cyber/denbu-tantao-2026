@@ -1,0 +1,439 @@
+<!DOCTYPE html>
+<html lang="vi">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Đền bù kho Tân Tạo năm 2026</title>
+  <script src="https://cdn.tailwindcss.com"></script>
+  <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+  <style>
+    body { background: #0f172a; color: #e2e8f0; font-family: 'Segoe UI', sans-serif; }
+    .card { background: #1e293b; border: 1px solid #334155; border-radius: 12px; }
+    .kpi-value { font-size: 1.75rem; font-weight: 700; }
+    .zone-label { display: flex; align-items: center; gap: 10px; margin-bottom: 1.25rem; }
+    .zone-label::after { content: ''; flex: 1; height: 1px; background: #334155; }
+    table { border-collapse: collapse; width: 100%; }
+    thead th { background: #1e3a5f; color: #93c5fd; font-size: 0.75rem; text-transform: uppercase; letter-spacing: 0.05em; padding: 10px 12px; }
+    tbody tr:nth-child(even) { background: #162032; }
+    tbody tr:hover { background: #1e3a5f33; }
+    .page-btn { padding: 4px 10px; border-radius: 6px; background: #334155; color: #94a3b8; margin: 0 2px; font-size: 0.875rem; cursor: pointer; border: none; }
+    .page-btn.active { background: #2563eb; color: #fff; }
+    .month-tab { padding: 6px 16px; border-radius: 8px; border: 1px solid #334155; background: #1e293b; color: #94a3b8; cursor: pointer; font-size: 0.8rem; font-weight: 600; transition: all 0.15s; }
+    .month-tab.active { background: #2563eb; border-color: #2563eb; color: #fff; }
+    .tab-btn { padding: 10px 22px; border-radius: 10px 10px 0 0; border: 1px solid #334155; border-bottom: none; background: #1e293b; color: #64748b; cursor: pointer; font-size: 0.875rem; font-weight: 600; transition: all 0.15s; margin-bottom: -1px; }
+    .tab-btn.active { background: #0f172a; color: #e2e8f0; border-color: #3b82f6; border-bottom: 1px solid #0f172a; }
+    #tab1, #tab2 { padding-top: 1.5rem; }
+    .filter-select { width: 100%; background: #0f172a; border: 1px solid #334155; color: #e2e8f0; border-radius: 8px; padding: 8px 12px; font-size: 0.875rem; outline: none; }
+    .filter-select:focus { border-color: #3b82f6; }
+  </style>
+</head>
+<body class="p-4 md:p-6 max-w-7xl mx-auto">
+
+  <!-- HEADER -->
+  <div class="mb-8 border-b border-slate-700 pb-5">
+    <h1 class="text-2xl font-bold text-white tracking-wide">Đền Bù Kho Tân Tạo Năm 2026</h1>
+    <p class="text-sm text-slate-400 mt-1">Hệ thống theo dõi dữ liệu bồi thường vật tư tự động · Tháng 1 – Tháng 5</p>
+  </div>
+
+  <!-- TAB NAV -->
+  <div class="border-b border-slate-700 flex gap-0">
+    <button id="tabBtn1" class="tab-btn active" onclick="switchTab(1)">📊 Tổng Quan</button>
+    <button id="tabBtn2" class="tab-btn" onclick="switchTab(2)">🔍 Chi Tiết Theo Tháng</button>
+  </div>
+
+  <div id="tab1">
+  <div class="zone-label">
+    <span class="text-xs font-bold uppercase tracking-widest text-blue-400 bg-blue-500/10 border border-blue-500/30 px-3 py-1 rounded-full">📊 Khu Vực 1 · Tổng Quan Lũy Kế (T1 – T5)</span>
+  </div>
+
+  <!-- KPI Cards (toàn bộ dữ liệu, không lọc) -->
+  <div class="grid grid-cols-1 sm:grid-cols-3 gap-4 mb-6">
+    <div class="card p-4 flex flex-col justify-between">
+      <span class="text-xs font-semibold uppercase text-slate-400 tracking-wider">Tổng Chi Phí Bồi Thường</span>
+      <span class="kpi-value text-red-400 mt-2" id="kpiTongChiPhi">—</span>
+    </div>
+    <div class="card p-4 flex flex-col justify-between">
+      <span class="text-xs font-semibold uppercase text-slate-400 tracking-wider">Tổng Số Yêu Cầu Phát Sinh</span>
+      <span class="kpi-value text-amber-400 mt-2" id="kpiTongYeuCau">—</span>
+    </div>
+    <div class="card p-4 flex flex-col justify-between">
+      <span class="text-xs font-semibold uppercase text-slate-400 tracking-wider">Tổng Số Nhân Sự Bị Ghi Nhận</span>
+      <span class="kpi-value text-blue-400 mt-2" id="kpiTongNhanSu">—</span>
+    </div>
+  </div>
+
+  <!-- Charts -->
+  <div class="grid grid-cols-1 md:grid-cols-3 gap-6 mb-6">
+    <div class="card p-4 flex flex-col items-center">
+      <h3 class="text-sm font-semibold uppercase text-slate-300 mb-4 self-start">Tỷ trọng chi phí (Loại NS)</h3>
+      <div class="w-full max-w-[220px]"><canvas id="chartPie"></canvas></div>
+    </div>
+    <div class="card p-4 md:col-span-2">
+      <h3 class="text-sm font-semibold uppercase text-slate-300 mb-2">Top 5 nhân sự chi phí cao nhất (lũy kế)</h3>
+      <div class="h-[240px]"><canvas id="chartBar"></canvas></div>
+    </div>
+  </div>
+
+  <!-- Monthly Breakdown Table -->
+  <div class="card p-4 mb-10 overflow-x-auto">
+    <h3 class="text-sm font-semibold uppercase text-slate-300 mb-4">Bảng phân tích biến động chi phí theo tháng</h3>
+    <table class="text-sm text-left">
+      <thead>
+        <tr>
+          <th>Tháng</th>
+          <th>Số NS phát sinh</th>
+          <th>Tổng chi phí đền bù</th>
+          <th>Tỷ trọng đóng góp</th>
+        </tr>
+      </thead>
+      <tbody id="monthlyTableBody" class="text-slate-300"></tbody>
+    </table>
+  </div>
+
+  <!-- Dept × Month Breakdown Table -->
+  <div class="card p-4 mb-6 overflow-x-auto" id="deptBreakdownCard">
+    <h3 class="text-sm font-semibold uppercase text-slate-400 mb-4">Tổng đền bù theo Bộ phận qua từng Tháng</h3>
+    <table class="text-sm text-left w-full">
+      <thead>
+        <tr>
+          <th>Bộ phận</th>
+          <th class="text-right">Tháng 1</th>
+          <th class="text-right">Tháng 2</th>
+          <th class="text-right">Tháng 3</th>
+          <th class="text-right">Tháng 4</th>
+          <th class="text-right">Tháng 5</th>
+          <th class="text-right text-amber-400">Tổng cộng</th>
+        </tr>
+      </thead>
+      <tbody id="deptTableBody" class="text-slate-300"></tbody>
+    </table>
+  </div>
+
+  </div><!-- /tab1 -->
+
+  <div id="tab2" class="hidden">
+  <div class="zone-label">
+    <span class="text-xs font-bold uppercase tracking-widest text-emerald-400 bg-emerald-500/10 border border-emerald-500/30 px-3 py-1 rounded-full">🔍 Khu Vực 2 · Xem Chi Tiết Theo Tháng</span>
+  </div>
+
+  <!-- Month Tabs -->
+  <div class="flex flex-wrap gap-2 mb-4">
+    <button class="month-tab active" data-month="">Tất cả</button>
+    <button class="month-tab" data-month="m1">Tháng 1</button>
+    <button class="month-tab" data-month="m2">Tháng 2</button>
+    <button class="month-tab" data-month="m3">Tháng 3</button>
+    <button class="month-tab" data-month="m4">Tháng 4</button>
+    <button class="month-tab" data-month="m5">Tháng 5</button>
+  </div>
+
+  <!-- Filters for Zone 2 -->
+  <div class="card p-4 mb-6 grid grid-cols-1 sm:grid-cols-4 gap-4">
+    <div>
+      <label class="block text-xs font-semibold uppercase text-slate-400 mb-1">Kho</label>
+      <select id="filterKho" class="filter-select">
+        <option value="">Tất cả kho</option>
+        <option value="Boxme T.Tạo">Boxme T.Tạo</option>
+        <option value="Boxme L.Minh Xuân">Boxme L.Minh Xuân</option>
+      </select>
+    </div>
+    <div>
+      <label class="block text-xs font-semibold uppercase text-slate-400 mb-1">Bộ phận</label>
+      <select id="filterBoPhan" class="filter-select">
+        <option value="">Tất cả bộ phận</option>
+      </select>
+    </div>
+    <div>
+      <label class="block text-xs font-semibold uppercase text-slate-400 mb-1">Loại nhân sự</label>
+      <select id="filterLoai" class="filter-select">
+        <option value="">Tất cả loại</option>
+        <option value="Chính thức">Chính thức</option>
+        <option value="Thời vụ">Thời vụ</option>
+      </select>
+    </div>
+    <div>
+      <label class="block text-xs font-semibold uppercase text-slate-400 mb-1">Tìm kiếm nhân sự</label>
+      <input type="text" id="searchBox" placeholder="Nhập tên hoặc mã NV..." class="filter-select" />
+    </div>
+  </div>
+
+  <!-- Detail Table -->
+  <div class="card p-4">
+    <div class="flex items-center justify-between mb-4 flex-wrap gap-2">
+      <h3 class="text-sm font-semibold uppercase text-slate-300">Danh sách chi tiết nhân sự</h3>
+      <span id="monthBadge" class="text-xs font-bold px-3 py-1 rounded-full bg-slate-700 text-slate-300"></span>
+    </div>
+    <div class="overflow-x-auto">
+      <table class="text-sm text-left">
+        <thead>
+          <tr>
+            <th>Mã NV</th>
+            <th>Nhân sự</th>
+            <th>Bộ phận</th>
+            <th>Kho</th>
+            <th>Loại</th>
+            <th id="thYeuCau">Số Y/C</th>
+            <th class="text-right" id="thChiPhi">Tổng Chi Phí</th>
+          </tr>
+        </thead>
+        <tbody id="tableBody" class="text-slate-300"></tbody>
+        <tfoot id="tableFooter"></tfoot>
+      </table>
+    </div>
+    <div class="flex flex-col sm:flex-row justify-between items-center mt-4 pt-4 border-t border-slate-700 gap-4">
+      <span id="tableInfo" class="text-xs text-slate-400"></span>
+      <div class="flex items-center gap-3 flex-wrap">
+        <label class="text-xs text-slate-400 whitespace-nowrap">Dòng/trang:</label>
+        <select id="pageSizeSelect" class="filter-select" style="width:auto">
+          <option value="10" selected>10</option>
+          <option value="50">50</option>
+          <option value="100">100</option>
+        </select>
+        <div id="pagination" class="flex items-center flex-wrap gap-1"></div>
+      </div>
+    </div>
+  </div>
+
+  </div><!-- /tab2 -->
+
+<script>
+  const RAW_DATA = [{"dinh_danh":"Võ Thị Nhất","ma":"HCM-0165","bo_phan":"OS","kho":"Boxme T.Tạo","loai":"Chính thức","yeu_cau":185,"chi_phi":2482934,"m1":128610,"m2":655323,"m3":1017765,"m4":364261,"m5":316975},{"dinh_danh":"Phạm Thị Thảo Vy","ma":"HCM-0895","bo_phan":"Packer","kho":"Boxme T.Tạo","loai":"Chính thức","yeu_cau":3,"chi_phi":1821750,"m1":0,"m2":0,"m3":1765650,"m4":56100,"m5":0},{"dinh_danh":"Quách Minh Quang","ma":"HCM-0791","bo_phan":"Packer","kho":"Boxme T.Tạo","loai":"Chính thức","yeu_cau":9,"chi_phi":1247753,"m1":15653,"m2":170700,"m3":175000,"m4":353000,"m5":533400},{"dinh_danh":"Trần Hoàng Anh","ma":"HCM-0426","bo_phan":"Packer","kho":"Boxme T.Tạo","loai":"Chính thức","yeu_cau":3,"chi_phi":1157799,"m1":30700,"m2":0,"m3":1127099,"m4":0,"m5":0},{"dinh_danh":"Vũ Kim Bài","ma":"HCM-0466","bo_phan":"Packer","kho":"Boxme T.Tạo","loai":"Chính thức","yeu_cau":8,"chi_phi":1010640,"m1":63000,"m2":12600,"m3":690000,"m4":245040,"m5":0},{"dinh_danh":"Vương Hải Đăng","ma":"HCM-0556","bo_phan":"Packer","kho":"Boxme T.Tạo","loai":"Chính thức","yeu_cau":5,"chi_phi":995140,"m1":929340,"m2":0,"m3":2800,"m4":63000,"m5":0},{"dinh_danh":"Nguyễn Hoài Khương","ma":"HCM-0465","bo_phan":"Picker","kho":"Boxme T.Tạo","loai":"Chính thức","yeu_cau":40,"chi_phi":947102,"m1":105610,"m2":46667,"m3":760811,"m4":29861,"m5":4153},{"dinh_danh":"Trương Gia Huy","ma":"HCM-0479","bo_phan":"Picker","kho":"Boxme T.Tạo","loai":"Chính thức","yeu_cau":38,"chi_phi":799641,"m1":105606,"m2":421667,"m3":45839,"m4":22376,"m5":204153},{"dinh_danh":"Trần Minh Hiếu","ma":"HCM-0673","bo_phan":"Controller","kho":"Boxme T.Tạo","loai":"Chính thức","yeu_cau":39,"chi_phi":642202,"m1":105610,"m2":421667,"m3":80911,"m4":29861,"m5":4153},{"dinh_danh":"Võ Phúc Đạt","ma":"HCM-0759","bo_phan":"Packer","kho":"Boxme T.Tạo","loai":"Chính thức","yeu_cau":8,"chi_phi":614120,"m1":102600,"m2":0,"m3":0,"m4":397800,"m5":113720},{"dinh_danh":"Phạm Tuấn","ma":"HCM-0271","bo_phan":"Controller","kho":"Boxme T.Tạo","loai":"Chính thức","yeu_cau":38,"chi_phi":607094,"m1":105610,"m2":421667,"m3":45811,"m4":29861,"m5":4145},{"dinh_danh":"Nguyễn Thế Quang","ma":"HCM-0646","bo_phan":"Controller","kho":"Boxme T.Tạo","loai":"Chính thức","yeu_cau":38,"chi_phi":607094,"m1":105610,"m2":421667,"m3":45803,"m4":29861,"m5":4153},{"dinh_danh":"Đoàn Hiền","ma":"HCM-0009","bo_phan":"Leader","kho":"Boxme T.Tạo","loai":"Chính thức","yeu_cau":41,"chi_phi":586584,"m1":113062,"m2":285797,"m3":157111,"m4":26461,"m5":4153},{"dinh_danh":"Hà Ngọc Thạch","ma":"HCM-0525","bo_phan":"Picker","kho":"Boxme T.Tạo","loai":"Chính thức","yeu_cau":38,"chi_phi":572110,"m1":445610,"m2":46667,"m3":45811,"m4":29869,"m5":4153},{"dinh_danh":"Võ Thị Nhanh","ma":"HCM-0057","bo_phan":"Leader","kho":"Boxme T.Tạo","loai":"Chính thức","yeu_cau":41,"chi_phi":568057,"m1":105610,"m2":285797,"m3":46811,"m4":125686,"m5":4153},{"dinh_danh":"Nguyễn Thị Thanh Thúy","ma":"HCM-0896","bo_phan":"Packer","kho":"Boxme T.Tạo","loai":"Chính thức","yeu_cau":2,"chi_phi":515725,"m1":0,"m2":0,"m3":416500,"m4":99225,"m5":0},{"dinh_danh":"Phan Quốc Hưng","ma":"HCM-0528","bo_phan":"Controller","kho":"Boxme T.Tạo","loai":"Chính thức","yeu_cau":39,"chi_phi":474702,"m1":105602,"m2":129267,"m3":45819,"m4":29861,"m5":164153},{"dinh_danh":"Nguyễn Minh Thanh","ma":"HCM-0056","bo_phan":"Leader","kho":"Boxme T.Tạo","loai":"Chính thức","yeu_cau":40,"chi_phi":471832,"m1":109610,"m2":285797,"m3":45811,"m4":26461,"m5":4153},{"dinh_danh":"Nguyễn Lê Tiểu Quyên","ma":"HCM-0168","bo_phan":"Leader","kho":"Boxme T.Tạo","loai":"Chính thức","yeu_cau":40,"chi_phi":468832,"m1":106610,"m2":285797,"m3":45811,"m4":26461,"m5":4153},{"dinh_danh":"Hồ Văn Vạn","ma":"HCM-0781","bo_phan":"Packer","kho":"Boxme T.Tạo","loai":"Chính thức","yeu_cau":3,"chi_phi":449320,"m1":449320,"m2":0,"m3":0,"m4":0,"m5":0},{"dinh_danh":"Nguyễn Đức Khâm","ma":"HCM-0657","bo_phan":"Packer","kho":"Boxme T.Tạo","loai":"Chính thức","yeu_cau":5,"chi_phi":435170,"m1":0,"m2":1000,"m3":0,"m4":434170,"m5":0},{"dinh_danh":"Nguyễn Thị Ngọc Tuyền","ma":"HCM-0233","bo_phan":"Packer","kho":"Boxme T.Tạo","loai":"Chính thức","yeu_cau":4,"chi_phi":424463,"m1":424463,"m2":0,"m3":0,"m4":0,"m5":0},{"dinh_danh":"Nguyễn Thị Phúc Trâm","ma":"HCM-0779","bo_phan":"Packer","kho":"Boxme T.Tạo","loai":"Chính thức","yeu_cau":6,"chi_phi":401570,"m1":170550,"m2":1000,"m3":0,"m4":77020,"m5":153000},{"dinh_danh":"Trần Mỹ Âu","ma":"HCM-0948","bo_phan":"Packer","kho":"Boxme T.Tạo","loai":"Chính thức","yeu_cau":3,"chi_phi":399237,"m1":0,"m2":0,"m3":0,"m4":210237,"m5":189000},{"dinh_danh":"Nguyễn Thanh Ngân","ma":"HCM-0745","bo_phan":"IS","kho":"Boxme T.Tạo","loai":"Chính thức","yeu_cau":2,"chi_phi":385815,"m1":385815,"m2":0,"m3":0,"m4":0,"m5":0},{"dinh_danh":"Huỳnh Khắc Nguyên","ma":"HCM-0418","bo_phan":"Picker","kho":"Boxme T.Tạo","loai":"Chính thức","yeu_cau":38,"chi_phi":336018,"m1":105606,"m2":46659,"m3":149753,"m4":29858,"m5":4142},{"dinh_danh":"Phạm Lý Duy Thư","ma":"HCM-0184","bo_phan":"Packer","kho":"Boxme T.Tạo","loai":"Chính thức","yeu_cau":3,"chi_phi":330212,"m1":146812,"m2":183400,"m3":0,"m4":0,"m5":0},{"dinh_danh":"Phạm Thị Hiển","ma":"HCM-0805","bo_phan":"Packer","kho":"Boxme T.Tạo","loai":"Chính thức","yeu_cau":2,"chi_phi":305750,"m1":305750,"m2":0,"m3":0,"m4":0,"m5":0},{"dinh_danh":"Nguyễn Minh Thông","ma":"HCM-0685","bo_phan":"Handover","kho":"Boxme T.Tạo","loai":"Chính thức","yeu_cau":1,"chi_phi":290000,"m1":290000,"m2":0,"m3":0,"m4":0,"m5":0},{"dinh_danh":"Hà Thị Thu Thủy","ma":"HCM-0619","bo_phan":"Packer","kho":"Boxme T.Tạo","loai":"Chính thức","yeu_cau":3,"chi_phi":287002,"m1":0,"m2":0,"m3":249100,"m4":0,"m5":37902},{"dinh_danh":"Nguyễn Thanh Ngàn","ma":"HCM-0617","bo_phan":"Picker","kho":"Boxme T.Tạo","loai":"Chính thức","yeu_cau":39,"chi_phi":279002,"m1":105610,"m2":46667,"m3":92711,"m4":29861,"m5":4153},{"dinh_danh":"Lê Thị Ngọc Giàu","ma":"HCM-0590","bo_phan":"Packer","kho":"Boxme T.Tạo","loai":"Chính thức","yeu_cau":4,"chi_phi":257450,"m1":18000,"m2":0,"m3":76560,"m4":162890,"m5":0},{"dinh_danh":"Nguyễn Hữu Tài","ma":"HCM-0530","bo_phan":"Packer","kho":"Boxme T.Tạo","loai":"Chính thức","yeu_cau":6,"chi_phi":248135,"m1":74835,"m2":69000,"m3":104300,"m4":0,"m5":0},{"dinh_danh":"Nguyễn Phú Ngọc","ma":"HCM-0156","bo_phan":"Controller","kho":"Boxme T.Tạo","loai":"Chính thức","yeu_cau":37,"chi_phi":232110,"m1":105610,"m2":46667,"m3":45819,"m4":29861,"m5":4153},{"dinh_danh":"Lê Văn Đoàn","ma":"HCM-0131","bo_phan":"Controller","kho":"Boxme T.Tạo","loai":"Chính thức","yeu_cau":37,"chi_phi":232102,"m1":105610,"m2":46667,"m3":45811,"m4":29861,"m5":4153},{"dinh_danh":"Nguyễn Thành Quang","ma":"HCM-0187","bo_phan":"Controller","kho":"Boxme T.Tạo","loai":"Chính thức","yeu_cau":37,"chi_phi":232102,"m1":105610,"m2":46667,"m3":45811,"m4":29861,"m5":4153},{"dinh_danh":"Nguyễn Tứ Hải","ma":"HCM-0303","bo_phan":"Controller","kho":"Boxme T.Tạo","loai":"Chính thức","yeu_cau":37,"chi_phi":232102,"m1":105610,"m2":46667,"m3":45811,"m4":29861,"m5":4153},{"dinh_danh":"Nguyễn Văn Vô","ma":"HCM-0468","bo_phan":"Picker","kho":"Boxme T.Tạo","loai":"Chính thức","yeu_cau":37,"chi_phi":232102,"m1":105610,"m2":46667,"m3":45811,"m4":29861,"m5":4153},{"dinh_danh":"Nguyễn Chí Cường","ma":"HCM-0485","bo_phan":"Picker","kho":"Boxme T.Tạo","loai":"Chính thức","yeu_cau":37,"chi_phi":232102,"m1":105610,"m2":46667,"m3":45811,"m4":29861,"m5":4153},{"dinh_danh":"Nguyễn Đình Duy","ma":"HCM-0722","bo_phan":"Picker","kho":"Boxme T.Tạo","loai":"Chính thức","yeu_cau":37,"chi_phi":232102,"m1":105610,"m2":46667,"m3":45811,"m4":29861,"m5":4153},{"dinh_danh":"Trịnh Quốc Việt","ma":"HCM-0566","bo_phan":"Picker","kho":"Boxme T.Tạo","loai":"Chính thức","yeu_cau":37,"chi_phi":232086,"m1":105586,"m2":46667,"m3":45819,"m4":29861,"m5":4153},{"dinh_danh":"Phan Thị Mỹ Ngọc","ma":"HCM-0785","bo_phan":"Picker","kho":"Boxme T.Tạo","loai":"Chính thức","yeu_cau":36,"chi_phi":229829,"m1":105610,"m2":46667,"m3":45811,"m4":27588,"m5":4153},{"dinh_danh":"Vũ Thị Thùy Liên","ma":"HCM-0787","bo_phan":"Packer","kho":"Boxme T.Tạo","loai":"Chính thức","yeu_cau":4,"chi_phi":222700,"m1":164700,"m2":50000,"m3":8000,"m4":0,"m5":0},{"dinh_danh":"Thái Thị Huyền","ma":"HCM-0565","bo_phan":"Packer","kho":"Boxme T.Tạo","loai":"Chính thức","yeu_cau":3,"chi_phi":211799,"m1":0,"m2":0,"m3":211799,"m4":0,"m5":0},{"dinh_danh":"Lê Văn Sơn","ma":"HCM-0500","bo_phan":"Packer","kho":"Boxme T.Tạo","loai":"Chính thức","yeu_cau":4,"chi_phi":207350,"m1":118000,"m2":0,"m3":0,"m4":38250,"m5":51100},{"dinh_danh":"Nguyễn Văn Hiến","ma":"HCM-0262","bo_phan":"Leader","kho":"Boxme L.Minh Xuân","loai":"Chính thức","yeu_cau":28,"chi_phi":198088,"m1":105610,"m2":46667,"m3":45811,"m4":0,"m5":0},{"dinh_danh":"Nguyễn Hùng Bảo Quân","ma":"HCM-0796","bo_phan":"Packer","kho":"Boxme T.Tạo","loai":"Chính thức","yeu_cau":3,"chi_phi":194000,"m1":0,"m2":137900,"m3":0,"m4":56100,"m5":0},{"dinh_danh":"Thái Hồng Sơn","ma":"HCM-0546","bo_phan":"Receiver","kho":"Boxme T.Tạo","loai":"Chính thức","yeu_cau":1,"chi_phi":187500,"m1":187500,"m2":0,"m3":0,"m4":0,"m5":0},{"dinh_danh":"Trần Nguyễn Trà My","ma":"","bo_phan":"Packer","kho":"Boxme T.Tạo","loai":"Thời vụ","yeu_cau":1,"chi_phi":169000,"m1":169000,"m2":0,"m3":0,"m4":0,"m5":0},{"dinh_danh":"Phạm Thị Thanh Quí","ma":"","bo_phan":"Packer","kho":"Boxme T.Tạo","loai":"Thời vụ","yeu_cau":1,"chi_phi":161920,"m1":0,"m2":161920,"m3":0,"m4":0,"m5":0},{"dinh_danh":"Trịnh Duy Lâm","ma":"HCM-0394","bo_phan":"Handover","kho":"Boxme T.Tạo","loai":"Chính thức","yeu_cau":1,"chi_phi":154000,"m1":0,"m2":0,"m3":0,"m4":154000,"m5":0},{"dinh_danh":"Neáng Bunh Ny","ma":"HCM-0748","bo_phan":"Packer","kho":"Boxme T.Tạo","loai":"Chính thức","yeu_cau":4,"chi_phi":135000,"m1":117000,"m2":0,"m3":18000,"m4":0,"m5":0},{"dinh_danh":"Bùi Ngọc Đức","ma":"HCM-0793","bo_phan":"Packer","kho":"Boxme T.Tạo","loai":"Chính thức","yeu_cau":1,"chi_phi":124848,"m1":124848,"m2":0,"m3":0,"m4":0,"m5":0},{"dinh_danh":"Trần Thị Minh Thư","ma":"HCM-0380","bo_phan":"Packer","kho":"Boxme T.Tạo","loai":"Chính thức","yeu_cau":1,"chi_phi":104300,"m1":0,"m2":0,"m3":104300,"m4":0,"m5":0},{"dinh_danh":"Nguyễn Anh Thư","ma":"HCM-0415","bo_phan":"Packer","kho":"Boxme T.Tạo","loai":"Chính thức","yeu_cau":2,"chi_phi":75940,"m1":51100,"m2":24840,"m3":0,"m4":0,"m5":0},{"dinh_danh":"NGUYỄN THỊ NGỌC YẾN","ma":"","bo_phan":"Packer","kho":"Boxme T.Tạo","loai":"Thời vụ","yeu_cau":1,"chi_phi":59000,"m1":59000,"m2":0,"m3":0,"m4":0,"m5":0},{"dinh_danh":"Nguyễn Tấn An","ma":"HCM-0648","bo_phan":"Packer","kho":"Boxme T.Tạo","loai":"Chính thức","yeu_cau":1,"chi_phi":56950,"m1":56950,"m2":0,"m3":0,"m4":0,"m5":0},{"dinh_danh":"Nguyễn Thị Lê","ma":"HCM-0955","bo_phan":"Packer","kho":"Boxme T.Tạo","loai":"Chính thức","yeu_cau":1,"chi_phi":52000,"m1":0,"m2":0,"m3":0,"m4":0,"m5":52000},{"dinh_danh":"Ngô Thị Vy","ma":"HCM-0708","bo_phan":"Packer","kho":"Boxme T.Tạo","loai":"Chính thức","yeu_cau":1,"chi_phi":51100,"m1":0,"m2":0,"m3":0,"m4":0,"m5":51100},{"dinh_danh":"phạm nguyễn thiên thanh","ma":"","bo_phan":"Packer","kho":"Boxme T.Tạo","loai":"Thời vụ","yeu_cau":1,"chi_phi":48750,"m1":0,"m2":48750,"m3":0,"m4":0,"m5":0},{"dinh_danh":"Nguyễn Ngọc Bích Trân","ma":"HCM-0904","bo_phan":"Packer","kho":"Boxme T.Tạo","loai":"Chính thức","yeu_cau":2,"chi_phi":46560,"m1":0,"m2":0,"m3":46560,"m4":0,"m5":0},{"dinh_danh":"Lê Phạm Anh","ma":"HCM-0792","bo_phan":"Packer","kho":"Boxme T.Tạo","loai":"Chính thức","yeu_cau":2,"chi_phi":35008,"m1":34008,"m2":0,"m3":0,"m4":0,"m5":1000},{"dinh_danh":"Nguyễn Đỗ Minh Tuấn","ma":"HCM-0891","bo_phan":"Receiver","kho":"Boxme T.Tạo","loai":"Chính thức","yeu_cau":1,"chi_phi":34128,"m1":0,"m2":0,"m3":0,"m4":34128,"m5":0},{"dinh_danh":"Nguyễn Đức Trung","ma":"HCM-0712","bo_phan":"Packer","kho":"Boxme T.Tạo","loai":"Chính thức","yeu_cau":1,"chi_phi":31305,"m1":31305,"m2":0,"m3":0,"m4":0,"m5":0},{"dinh_danh":"Trần Thị Hồng Thủy","ma":"HCM-0073","bo_phan":"Packer","kho":"Boxme T.Tạo","loai":"Chính thức","yeu_cau":2,"chi_phi":2000,"m1":2000,"m2":0,"m3":0,"m4":0,"m5":0},{"dinh_danh":"Tạ Thị Kim Oanh","ma":"","bo_phan":"Packer","kho":"Boxme T.Tạo","loai":"Thời vụ","yeu_cau":2,"chi_phi":0,"m1":0,"m2":0,"m3":0,"m4":0,"m5":0}];
+
+  let PAGE_SIZE = 10;
+  let currentPage = 1;
+  let selectedMonth = '';   // \'\' = tất cả, \'m1\'–\'m5\' = tháng cụ thể
+  let pieChartInstance = null;
+  let barChartInstance = null;
+
+  function switchTab(n) {
+    document.getElementById('tab1').classList.toggle('hidden', n !== 1);
+    document.getElementById('tab2').classList.toggle('hidden', n !== 2);
+    document.getElementById('tabBtn1').classList.toggle('active', n === 1);
+    document.getElementById('tabBtn2').classList.toggle('active', n === 2);
+  }
+
+  const MONTH_LABELS = { m1: 'Tháng 1', m2: 'Tháng 2', m3: 'Tháng 3', m4: 'Tháng 4', m5: 'Tháng 5' };
+
+  // ── ZONE 1: render với toàn bộ RAW_DATA ──────────────────────────
+  function renderOverview() {
+    const data = RAW_DATA;
+    // KPI
+    document.getElementById('kpiTongChiPhi').textContent  = data.reduce((s,d)=>s+d.chi_phi,0).toLocaleString('vi-VN') + 'đ';
+    document.getElementById('kpiTongYeuCau').textContent  = data.reduce((s,d)=>s+d.yeu_cau,0).toLocaleString('vi-VN');
+    document.getElementById('kpiTongNhanSu').textContent  = data.length + ' người';
+    // Pie
+    const ctx1 = document.getElementById('chartPie').getContext('2d');
+    if (pieChartInstance) pieChartInstance.destroy();
+    const ctCost = data.filter(d=>d.loai==='Chính thức').reduce((s,d)=>s+d.chi_phi,0);
+    const tvCost = data.filter(d=>d.loai==='Thời vụ').reduce((s,d)=>s+d.chi_phi,0);
+    pieChartInstance = new Chart(ctx1, {
+      type: 'pie',
+      data: { labels: ['Chính thức','Thời vụ'], datasets: [{ data: [ctCost, tvCost], backgroundColor: ['#2563eb','#d97706'], borderWidth: 2 }] },
+      options: { responsive: true, plugins: { legend: { position: 'bottom', labels: { color: '#94a3b8', font: { size: 11 } } },
+        tooltip: { callbacks: { label: c => ' ' + c.label + ': ' + c.raw.toLocaleString('vi-VN') + 'đ' } } } }
+    });
+    // Bar
+    const ctx2 = document.getElementById('chartBar').getContext('2d');
+    if (barChartInstance) barChartInstance.destroy();
+    const top5 = [...data].sort((a,b)=>b.chi_phi-a.chi_phi).slice(0,5);
+    barChartInstance = new Chart(ctx2, {
+      type: 'bar',
+      data: { labels: top5.map(d=>d.dinh_danh), datasets: [{ label: 'Chi phí', data: top5.map(d=>d.chi_phi), backgroundColor: '#ef4444', borderRadius: 6 }] },
+      options: { indexAxis: 'y', responsive: true, maintainAspectRatio: false,
+        plugins: { legend: { display: false }, tooltip: { callbacks: { label: c => ' ' + c.raw.toLocaleString('vi-VN') + 'đ' } } },
+        scales: {
+          x: { grid: { color: '#334155' }, ticks: { color: '#94a3b8', font: { size: 10 }, callback: v => (v/1000000).toFixed(1)+'M' } },
+          y: { grid: { display: false }, ticks: { color: '#e2e8f0', font: { size: 11 } } }
+        }
+      }
+    });
+    // Monthly breakdown
+    const months = ['m1','m2','m3','m4','m5'];
+    const totalAll = data.reduce((s,d)=>s+d.chi_phi,0);
+    const tbody = document.getElementById('monthlyTableBody');
+    tbody.innerHTML = '';
+    months.forEach(mk => {
+      const staffCount = data.filter(d => d[mk] > 0).length;
+      const totalMonth = data.reduce((s,d)=>s+(d[mk]||0),0);
+      const pct = totalAll > 0 ? ((totalMonth/totalAll)*100).toFixed(1) : '0.0';
+      let badge = 'bg-slate-700 text-slate-300';
+      if (pct > 30) badge = 'bg-red-500/20 text-red-400 border border-red-500/30';
+      else if (pct > 10) badge = 'bg-blue-500/20 text-blue-400 border border-blue-500/30';
+      else if (pct > 0)  badge = 'bg-emerald-500/20 text-emerald-400 border border-emerald-500/30';
+      const tr = document.createElement('tr');
+      tr.className = 'border-b border-slate-700/50 h-11';
+      tr.innerHTML = `
+        <td class="px-3 font-medium text-white">${MONTH_LABELS[mk]}</td>
+        <td class="px-3 text-blue-400 font-semibold">${staffCount} nhân sự</td>
+        <td class="px-3 font-semibold text-slate-200">${totalMonth.toLocaleString('vi-VN')}đ</td>
+        <td class="px-3"><span class="px-2 py-0.5 rounded text-xs font-bold ${badge}">${pct}%</span></td>`;
+      tbody.appendChild(tr);
+    });
+    // Dept breakdown
+    renderDeptTable();
+  }
+
+  // ── DEPT BREAKDOWN TABLE ──────────────────────────────────────────
+  function renderDeptTable() {
+    const data  = RAW_DATA;
+    const months = ['m1','m2','m3','m4','m5'];
+    const depts  = [...new Set(data.map(d=>d.bo_phan))].sort();
+    const tbody  = document.getElementById('deptTableBody');
+    tbody.innerHTML = '';
+    let colTotals = [0,0,0,0,0,0];
+    depts.forEach(bp => {
+      const rows = data.filter(d=>d.bo_phan===bp);
+      const vals = months.map(mk => rows.reduce((s,d)=>s+(d[mk]||0),0));
+      const rowSum = vals.reduce((s,v)=>s+v,0);
+      vals.forEach((v,i)=>{ colTotals[i]+=v; });
+      colTotals[5] += rowSum;
+      const tr = document.createElement('tr');
+      tr.className = 'border-b border-slate-700/50 h-10';
+      tr.innerHTML = `
+        <td class="px-3 font-medium text-white">${bp}</td>
+        ${vals.map(v=>
+          `<td class="px-3 text-right font-semibold ${v>0?'text-slate-200':'text-slate-600'}">${v>0?v.toLocaleString('vi-VN')+'đ':'—'}</td>`
+        ).join('')}
+        <td class="px-3 text-right font-bold text-amber-400">${rowSum.toLocaleString('vi-VN')}đ</td>`;
+      tbody.appendChild(tr);
+    });
+    // Footer totals row
+    const tf = document.createElement('tr');
+    tf.className = 'border-t-2 border-slate-500 bg-slate-800/50 font-bold';
+    tf.innerHTML = `
+      <td class="px-3 text-slate-300 uppercase text-xs">Tổng tất cả</td>
+      ${colTotals.slice(0,5).map(v=>
+        `<td class="px-3 text-right text-slate-200">${v>0?v.toLocaleString('vi-VN')+'đ':'—'}</td>`
+      ).join('')}
+      <td class="px-3 text-right text-amber-400">${colTotals[5].toLocaleString('vi-VN')}đ</td>`;
+    tbody.appendChild(tf);
+  }
+
+  // ── ZONE 2: filter + table ────────────────────────────────────────
+  function updateBoPhanFilter() {
+    const khoVal  = document.getElementById('filterKho').value;
+    const bpSel   = document.getElementById('filterBoPhan');
+    const savedBp = bpSel.value;
+    const base    = khoVal ? RAW_DATA.filter(d=>d.kho===khoVal) : RAW_DATA;
+    const uniq    = [...new Set(base.map(d=>d.bo_phan))].sort();
+    bpSel.innerHTML = '<option value="">Tất cả bộ phận</option>';
+    uniq.forEach(bp => {
+      const opt = document.createElement('option');
+      opt.value = bp; opt.textContent = bp;
+      if (bp === savedBp) opt.selected = true;
+      bpSel.appendChild(opt);
+    });
+    if (savedBp && !uniq.includes(savedBp)) bpSel.value = '';
+  }
+
+  function getFiltered() {
+    const kho    = document.getElementById('filterKho').value;
+    const boPhan = document.getElementById('filterBoPhan').value;
+    const loai   = document.getElementById('filterLoai').value;
+    const search = document.getElementById('searchBox').value.toLowerCase().trim();
+    return RAW_DATA.filter(d => {
+      if (kho    && d.kho     !== kho)    return false;
+      if (boPhan && d.bo_phan !== boPhan) return false;
+      if (loai   && d.loai   !== loai)    return false;
+      if (search && !d.dinh_danh.toLowerCase().includes(search) && !d.ma.toLowerCase().includes(search)) return false;
+      // Nếu đang xem tháng cụ thể, chỉ giữ người có phát sinh trong tháng đó
+      if (selectedMonth && !(d[selectedMonth] > 0)) return false;
+      return true;
+    });
+  }
+
+  function renderDetail() {
+    const data = getFiltered();
+    // Cập nhật badge tháng và header cột
+    const monthLabel = selectedMonth ? MONTH_LABELS[selectedMonth] : 'Tất cả tháng';
+    document.getElementById('monthBadge').textContent = '📅 ' + monthLabel;
+    document.getElementById('thChiPhi').textContent   = selectedMonth ? ('Chi Phí ' + MONTH_LABELS[selectedMonth]) : 'Tổng Chi Phí';
+    document.getElementById('thYeuCau').textContent   = selectedMonth ? 'Y/C (lũy kế)' : 'Số Y/C';
+
+    const tbody = document.getElementById('tableBody');
+    tbody.innerHTML = '';
+    const start    = (currentPage - 1) * PAGE_SIZE;
+    const pageData = data.slice(start, start + PAGE_SIZE);
+    pageData.forEach(d => {
+      const maHidden  = d.loai === 'Thời vụ' ? '(Thời vụ)' : (d.ma.slice(0,-3) + '***');
+      const chiPhiVal = selectedMonth ? d[selectedMonth] : d.chi_phi;
+      const tr = document.createElement('tr');
+      tr.className = 'border-b border-slate-700/50 h-11';
+      tr.innerHTML = `
+        <td class="px-3 font-mono text-xs text-slate-400">${maHidden}</td>
+        <td class="px-3 font-medium text-white">${d.dinh_danh}</td>
+        <td class="px-3 text-slate-300">${d.bo_phan}</td>
+        <td class="px-3 text-slate-400 text-xs">${d.kho}</td>
+        <td class="px-3"><span class="px-2 py-0.5 rounded text-xs font-semibold ${d.loai==='Chính thức'?'bg-blue-500/20 text-blue-400':'bg-amber-500/20 text-amber-400'}">${d.loai}</span></td>
+        <td class="px-3 text-slate-300 font-semibold">${d.yeu_cau}</td>
+        <td class="px-3 text-right font-semibold text-red-400">${chiPhiVal.toLocaleString('vi-VN')}đ</td>`;
+      tbody.appendChild(tr);
+    });
+    // Tfoot — Tổng cộng chi phí (theo filter đang active)
+    const tfoot = document.getElementById('tableFooter');
+    if (tfoot) {
+      const totalChiPhi = data.reduce((s,d) => s + (selectedMonth ? (d[selectedMonth]||0) : d.chi_phi), 0);
+      const totalYeuCau = data.reduce((s,d) => s + d.yeu_cau, 0);
+      tfoot.innerHTML = `
+        <tr class="border-t-2 border-slate-500 bg-slate-800/60 font-bold text-sm">
+          <td class="px-3 text-slate-400 text-xs uppercase py-2" colspan="2">Tổng cộng (${data.length} nhân sự)</td>
+          <td class="px-3" colspan="2"></td>
+          <td class="px-3"></td>
+          <td class="px-3 font-bold text-slate-200">${totalYeuCau.toLocaleString('vi-VN')}</td>
+          <td class="px-3 text-right font-bold text-amber-400">${totalChiPhi.toLocaleString('vi-VN')}đ</td>
+        </tr>`;
+    }
+
+    const totalPages = Math.ceil(data.length / PAGE_SIZE);
+    document.getElementById('tableInfo').textContent = data.length > 0
+      ? `Hiển thị ${start+1}–${Math.min(start+PAGE_SIZE,data.length)} / ${data.length} nhân sự`
+      : 'Không tìm thấy nhân sự phù hợp';
+    const pg = document.getElementById('pagination');
+    pg.innerHTML = '';
+    for (let p = 1; p <= totalPages; p++) {
+      const btn = document.createElement('button');
+      btn.className = 'page-btn' + (p === currentPage ? ' active' : '');
+      btn.textContent = p;
+      btn.onclick = () => { currentPage = p; renderDetail(); };
+      pg.appendChild(btn);
+    }
+  }
+
+  // ── INIT ─────────────────────────────────────────────────────────
+  window.addEventListener('DOMContentLoaded', () => {
+    renderOverview();
+    updateBoPhanFilter();
+    renderDetail();
+
+    document.getElementById('pageSizeSelect').addEventListener('change', function() {
+      PAGE_SIZE = parseInt(this.value);
+      currentPage = 1;
+      renderDetail();
+    });
+
+    // Month tabs
+    document.querySelectorAll('.month-tab').forEach(btn => {
+      btn.addEventListener('click', () => {
+        document.querySelectorAll('.month-tab').forEach(b => b.classList.remove('active'));
+        btn.classList.add('active');
+        selectedMonth = btn.dataset.month;
+        currentPage = 1;
+        renderDetail();
+      });
+    });
+
+    // Zone 2 filters
+    document.getElementById('filterKho').addEventListener('change', () => {
+      updateBoPhanFilter(); currentPage = 1; renderDetail();
+    });
+    ['filterBoPhan','filterLoai'].forEach(id =>
+      document.getElementById(id).addEventListener('change', () => { currentPage = 1; renderDetail(); })
+    );
+    let searchTimer;
+    document.getElementById('searchBox').addEventListener('input', () => {
+      clearTimeout(searchTimer);
+      searchTimer = setTimeout(() => { currentPage = 1; renderDetail(); }, 200);
+    });
+  });
+</script>
+</body>
+</html>

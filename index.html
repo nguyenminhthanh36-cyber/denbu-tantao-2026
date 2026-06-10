@@ -6,6 +6,7 @@
   <title>Đền bù kho Tân Tạo năm 2026</title>
   <script src="https://cdn.tailwindcss.com"></script>
   <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/html2pdf.js/0.10.1/html2pdf.bundle.min.js"></script>
   <style>
     body { background: #0f172a; color: #e2e8f0; font-family: 'Segoe UI', sans-serif; }
     .card { background: #1e293b; border: 1px solid #334155; border-radius: 12px; }
@@ -30,9 +31,15 @@
 <body class="p-4 md:p-6 max-w-7xl mx-auto">
 
   <!-- HEADER -->
-  <div class="mb-8 border-b border-slate-700 pb-5">
-    <h1 class="text-2xl font-bold text-white tracking-wide">Đền Bù Kho Tân Tạo Năm 2026</h1>
-    <p class="text-sm text-slate-400 mt-1">Hệ thống theo dõi dữ liệu bồi thường vật tư tự động · Tháng 1 – Tháng 5</p>
+  <div class="mb-8 border-b border-slate-700 pb-5 flex items-start justify-between gap-4">
+    <div>
+      <h1 class="text-2xl font-bold text-white tracking-wide">Đền Bù Kho Tân Tạo Năm 2026</h1>
+      <p class="text-sm text-slate-400 mt-1">Hệ thống theo dõi dữ liệu bồi thường vật tư tự động · Tháng 1 – Tháng 5</p>
+    </div>
+    <button onclick="exportPDF()" id="btnExportPDF"
+      class="flex-shrink-0 flex items-center gap-2 px-4 py-2 rounded-lg bg-emerald-600 hover:bg-emerald-500 active:scale-95 transition-all text-white text-sm font-semibold shadow-lg">
+      📄 Xuất Báo Cáo PDF
+    </button>
   </div>
 
   <!-- TAB NAV -->
@@ -434,6 +441,36 @@
       searchTimer = setTimeout(() => { currentPage = 1; renderDetail(); }, 200);
     });
   });
+  // ── EXPORT PDF ───────────────────────────────────────────────────────
+  function exportPDF() {
+    const btn = document.getElementById('btnExportPDF');
+    btn.disabled = true;
+    btn.textContent = '⏳ Đang xuất...';
+
+    const opt = {
+      margin:      10,
+      filename:    'Bao_cao_den_bu_kho_Tan_Tao_2026.pdf',
+      image:       { type: 'jpeg', quality: 0.98 },
+      html2canvas: { scale: 2, useCORS: true, backgroundColor: '#0f172a', logging: false },
+      jsPDF:       { unit: 'mm', format: 'a4', orientation: 'portrait' },
+      pagebreak:   { mode: ['avoid-all', 'css', 'legacy'] }
+    };
+
+    // Clone body, temporarily expand all tables (remove pagination limits)
+    const element = document.body.cloneNode(true);
+    element.style.background = '#0f172a';
+
+    html2pdf().set(opt).from(element).save()
+      .then(() => {
+        btn.disabled = false;
+        btn.textContent = '📄 Xuất Báo Cáo PDF';
+      })
+      .catch(() => {
+        btn.disabled = false;
+        btn.textContent = '📄 Xuất Báo Cáo PDF';
+      });
+  }
+
 </script>
 </body>
 </html>
